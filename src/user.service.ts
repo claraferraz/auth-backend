@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { User } from './user/user';
 import { RegisterUserDTO } from './user/registerUserDTO';
 import * as bcrypt from 'bcrypt';
+import { LoginUserDTO } from './user/loginUserDTO';
 
 export interface UserLoginResponse {
   token?: string;
@@ -65,9 +66,9 @@ export class UserService {
   async registerUser(payload: RegisterUserDTO): Promise<UserLoginResponse> {
     const userExists = await this.getUserByEmail(payload.email);
     if (userExists) {
-      throw new BadRequestException('User already exists', {
+      throw new BadRequestException('Usuário já existe', {
         cause: new Error(),
-        description: 'User already exists',
+        description: 'Usuário já existe',
       });
     }
 
@@ -78,6 +79,44 @@ export class UserService {
     });
     return {
       token: this.jwtService.sign(createdUser, {
+        secret: process.env.JWT_KEY,
+      }),
+    };
+  }
+
+  async loginUser(payload: LoginUserDTO): Promise<UserLoginResponse> {
+    const userExists = await this.prisma.user.findFirst({
+      where: {
+        email: payload.email,
+      },
+    });
+
+    if (!userExists) {
+      throw new BadRequestException('Usuário não encontrado', {
+        cause: new Error(),
+        description: 'Usuário não encontrado',
+      });
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const passwordMatch = await bcrypt.compare(
+      payload.password,
+      userExists.password,
+    );
+
+    if (!passwordMatch) {
+      throw new BadRequestException('Usuário ou senha incorretos', {
+        cause: new Error(),
+        description: 'Usuário ou senha incorretos',
+      });
+    }
+    const jwtPayload = {
+      id: userExists.id,
+      username: userExists.username,
+    };
+
+    return {
+      token: this.jwtService.sign(jwtPayload, {
         secret: process.env.JWT_KEY,
       }),
     };
