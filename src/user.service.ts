@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { UserDTO } from './user/userDTO';
+//import { UserDTO } from './user/userDTO';
 import { User } from './user/user';
 
 export interface UserLoginResponse {
